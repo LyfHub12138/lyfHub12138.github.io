@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>拼豆像素画板（最终终极版）</title>
+    <title>拼豆像素画板</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
@@ -93,7 +93,6 @@
             color: #b91c1c;
         }
 
-        /* Switch 开关样式 */
         .switch-container {
             display: flex;
             align-items: center;
@@ -129,7 +128,6 @@
             left: 20px;
         }
 
-        /* 颜色工具组 */
         .color-tools {
             position: fixed;
             top: 80px;
@@ -165,7 +163,6 @@
             background: #dbeafe;
         }
 
-        /* 橡皮擦大小滑块容器 */
         .eraser-size-container {
             display: none;
             align-items: center;
@@ -179,11 +176,6 @@
             height: 6px;
             accent-color: #3b82f6;
             cursor: pointer;
-        }
-        .eraser-size-text {
-            font-size: 12px;
-            font-weight: 500;
-            color: #333;
         }
 
         .grid-container {
@@ -203,13 +195,11 @@
             transform: translate(-50%, -50%);
         }
 
-        /* 主网格布局（包含坐标） */
         .main-grid {
             display: grid;
             grid-template-columns: 30px auto;
             grid-template-rows: 30px auto;
         }
-        /* 顶部X坐标 */
         .x-coords {
             grid-column: 2;
             grid-row: 1;
@@ -217,7 +207,6 @@
             background: #e2e8f0;
             overflow: hidden;
         }
-        /* 左侧Y坐标 */
         .y-coords {
             grid-column: 1;
             grid-row: 2;
@@ -226,7 +215,6 @@
             background: #e2e8f0;
             overflow: hidden;
         }
-        /* 坐标数字样式 */
         .coord-item {
             display: flex;
             align-items: center;
@@ -236,7 +224,6 @@
             color: #475569;
             flex-shrink: 0;
         }
-        /* 像素网格 */
         .grid {
             grid-column: 2;
             grid-row: 2;
@@ -257,16 +244,6 @@
             font-weight: 900;
             color: #000;
             font-size:10px;
-        }
-
-        /* 选中聚焦效果（超强高亮） */
-        .cell.selected-highlight {
-            border-color: #2563eb !important;
-            background-color: #dbeafe !important;
-            box-shadow: 0 0 0 3px #3b82f6, 0 0 12px rgba(59,130,240,0.8) !important;
-            transform: scale(1.08);
-            z-index: 10;
-            position: relative;
         }
 
         .grid-operate {
@@ -301,34 +278,6 @@
             z-index: 20;
         }
 
-        .edit-panel {
-            position: fixed;
-            top: 80px;
-            right: 20px;
-            background: white;
-            border-radius: 15px;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            padding: 15px;
-            display: none;
-            flex-direction: column;
-            gap: 10px;
-            z-index: 30;
-        }
-
-        .panel-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            background: #f1f5f9;
-        }
-
-        .panel-btn.primary {
-            background: #3b82f6;
-            color: #fff;
-        }
-
         .bottom-tools {
             position: fixed;
             bottom: 20px;
@@ -358,7 +307,6 @@
         }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <script src="https://cdn.jsdelivr.net/npm/contrast-js@0.0.3/dist/contrast.min.js"></script>
 </head>
 <body>
 
@@ -370,9 +318,7 @@
             <button class="zoom-btn" id="zoomInBtn"><i class="fas fa-plus"></i></button>
             <button class="zoom-btn" id="resetZoomBtn"><i class="fas fa-undo"></i></button>
         </div>
-        <div class="grid-size" id="gridSizeInfo">100×100</div>
-
-        <!-- 文字显示开关 -->
+        <div class="grid-size" id="gridSizeInfo">48×48</div>
         <div class="switch-container">
             <span>显示文字</span>
             <div class="switch active" id="textSwitch"></div>
@@ -381,7 +327,6 @@
     <button class="clear-all" id="clearAllBtn"><i class="fas fa-trash"></i></button>
 </div>
 
-<!-- 颜色面板 + 橡皮擦 + 橡皮擦大小调节 -->
 <div class="color-tools" style="flex-direction: column;">
     <div style="display: flex; gap: 10px;">
         <input type="color" id="nativeColorPicker" value="#2c3e4e">
@@ -409,11 +354,6 @@
 
 <div class="coord" id="coord">X: 0 | Y: 0</div>
 
-<div class="edit-panel">
-    <button class="panel-btn primary" id="fillSelectedColorBtn"><i class="fas fa-fill"></i></button>
-    <button class="panel-btn" id="clearSelectedBtn"><i class="fas fa-eraser"></i></button>
-</div>
-
 <div class="bottom-tools">
     <button class="bottom-btn" id="importBtn"><i class="fas fa-image"></i> 导入图片</button>
     <button class="bottom-btn primary" id="exportBtn"><i class="fas fa-download"></i> 导出图纸</button>
@@ -439,7 +379,6 @@
         let rows = 48, cols = 48;
         let baseCellSize = 28;
         let currentZoom = 1;
-        let selectedRow = null, selectedCol = null;
         let isDragging = false;
         let isPanning = false;
         let panX = 0, panY = 0;
@@ -458,7 +397,6 @@
         const yCoordsEl = document.getElementById('yCoords');
         const zoomWrapper = document.getElementById('zoomWrapper');
         const coord = document.getElementById('coord');
-        const editPanel = document.getElementById('editPanel');
         const gridContainer = document.querySelector('.grid-container');
         const fileInput = document.getElementById('fileInput');
         const importBtn = document.getElementById('importBtn');
@@ -467,9 +405,6 @@
 
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        // ======================
-        // Ctrl + 左键 拖拽平移
-        // ======================
         gridContainer.addEventListener('mousedown', (e) => {
             if (e.button === 0 && e.ctrlKey) {
                 isPanning = true;
@@ -498,19 +433,15 @@
             }
         });
 
-        // 文字显示开关
         textSwitch.onclick = () => {
             showText = !showText;
             textSwitch.classList.toggle('active', showText);
             refreshAllCellText();
         };
 
-        // 刷新坐标显示（修复版）
         function renderCoords() {
             xCoordsEl.innerHTML = '';
             yCoordsEl.innerHTML = '';
-
-            // X 坐标（顶部）
             for (let j = 0; j < cols; j++) {
                 const x = document.createElement('div');
                 x.className = 'coord-item';
@@ -519,8 +450,6 @@
                 x.innerText = j + 1;
                 xCoordsEl.appendChild(x);
             }
-
-            // Y 坐标（左侧）
             for (let i = 0; i < rows; i++) {
                 const y = document.createElement('div');
                 y.className = 'coord-item';
@@ -533,7 +462,7 @@
 
         function refreshAllCellText() {
             const cells = document.querySelectorAll('.cell');
-            cells.forEach((cell, idx) => {
+            cells.forEach((cell) => {
                 const r = parseInt(cell.dataset.r);
                 const c = parseInt(cell.dataset.c);
                 const color = gridData[r][c];
@@ -620,7 +549,6 @@
                     c.dataset.r = i;
                     c.dataset.c = j;
 
-                    c.onclick = () => selected(i, j);
                     c.ondblclick = () => {
                         const val = isEraser ? null : currentColor;
                         isEraser ? setColorRange(i, j, val) : setColor(i, j, val);
@@ -642,7 +570,6 @@
                     gridEl.appendChild(c);
                 }
             }
-            highlight();
             document.getElementById('gridSizeInfo').innerText = `${cols}×${rows}`;
         }
 
@@ -656,20 +583,6 @@
                 cell.innerText = (val && showText) ? getColorCode(val) : '';
                 cell.style.color = getBestTextColor(val);
             }
-        }
-
-        // 选中 + 聚焦效果
-        function selected(r, c) {
-            selectedRow = r; selectedCol = c;
-            editPanel.style.display = 'flex';
-            highlight();
-            updateCoord(c + 1, r + 1);
-        }
-
-        function highlight() {
-            document.querySelectorAll('.cell').forEach(x => x.classList.remove('selected-highlight'));
-            const t = document.querySelector(`.cell[data-r='${selectedRow}'][data-c='${selectedCol}']`);
-            if (t) t.classList.add('selected-highlight');
         }
 
         function setZoom(z) {
@@ -820,8 +733,6 @@
         document.getElementById('addRowBtn').onclick = () => { rows++; gridData.push(Array(cols).fill(null)); saveHistory(); render(); };
         document.getElementById('addColBtn').onclick = () => { cols++; gridData.forEach(x => x.push(null)); saveHistory(); render(); };
         document.getElementById('clearAllBtn').onclick = () => { gridData.forEach((r,i)=>r.forEach((_,j)=>setColor(i,j,null))); saveHistory(); render(); };
-        document.getElementById('fillSelectedColorBtn').onclick = () => { setColor(selectedRow,selectedCol,currentColor); saveHistory(); };
-        document.getElementById('clearSelectedBtn').onclick = () => { setColor(selectedRow,selectedCol,null); saveHistory(); };
 
         initGrid();
     })();
