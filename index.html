@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>拼豆像素画板（最终终极版）</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
+    <style>
+        * {
+            user-select: none;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans SC', sans-serif;
+        }
+
+        body {
+            min-height: 100vh;
+            background: #eef2f5;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            width: 100vw;
+            height: 60px;
+            background: #fff;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+            z-index: 20;
+        }
+
+        .top-left {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .zoom-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 4px 16px;
+            border-radius: 56px;
+        }
+
+        .zoom-btn {
+            background: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .zoom-level {
+            font-weight: 600;
+            min-width: 60px;
+            text-align: center;
+            background: white;
+            padding: 6px 12px;
+            border-radius: 40px;
+            font-size: 13px;
+        }
+
+        .grid-size {
+            font-weight: 700;
+            font-size: 13px;
+            padding: 6px 15px;
+            border-radius: 40px;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .clear-all {
+            background: #fee2e2;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #b91c1c;
+        }
+
+        /* 颜色工具组 */
+        .color-tools {
+            position: fixed;
+            top: 80px;
+            left: 30px;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        #nativeColorPicker {
+            width: 50px;
+            height: 50px;
+            border: none;
+            cursor: pointer;
+            background: transparent;
+        }
+
+        .eraser-btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            border: 2px solid #ddd;
+            background: #fff;
+            font-size: 22px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .eraser-btn.active {
+            border-color: #3b82f6;
+            background: #dbeafe;
+        }
+
+        /* 橡皮擦大小滑块容器 */
+        .eraser-size-container {
+            display: none;
+            align-items: center;
+            margin-top: 8px;
+            background: #fff;
+            border-radius: 12px;
+            border: 1px solid #eee;
+        }
+        .eraser-size-slider {
+            width: 90px;
+            height: 6px;
+            accent-color: #3b82f6;
+            cursor: pointer;
+        }
+        .eraser-size-text {
+            font-size: 12px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .grid-container {
+            width: 100vw;
+            height: calc(100vh - 60px);
+            background: #cbd5e1;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .zoom-wrapper {
+            transform-origin: center center;
+            transition: transform 0.08s ease;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+
+        .grid {
+            display: grid;
+            background-color: #fefefe;
+            box-shadow: 0 0 0 1px #b9c3cf inset;
+        }
+
+        .cell {
+            background-color: transparent;
+            border: 1px solid #cbd5e6;
+            box-sizing: border-box;
+            transition: background-color 0.03s linear;
+            cursor: crosshair;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 900;
+            color: #000;
+            font-size:10px;
+        }
+
+        .cell.selected-highlight {
+            box-shadow: 0 0 0 2px #3b82f6, 0 0 4px rgba(59,130,200,0.45);
+            z-index: 3;
+            position: relative;
+        }
+
+        .grid-operate {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 20;
+        }
+
+        .operate-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            border: none;
+            background: #1e293b;
+            color: #fff;
+            cursor: pointer;
+        }
+
+        .coord {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(15,23,42,0.9);
+            color: #fff;
+            font-size: 13px;
+            padding: 8px 20px;
+            border-radius: 48px;
+            z-index: 20;
+        }
+
+        .edit-panel {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            padding: 15px;
+            display: none;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 30;
+        }
+
+        .panel-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            background: #f1f5f9;
+        }
+
+        .panel-btn.primary {
+            background: #3b82f6;
+            color: #fff;
+        }
+
+        .bottom-tools {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 12px;
+            z-index: 20;
+        }
+        .bottom-btn {
+            padding: 10px 20px;
+            border-radius: 50px;
+            border: none;
+            background: #1e293b;
+            color: #fff;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .bottom-btn.primary {
+            background: #3b82f6;
+        }
+        #fileInput {
+            display: none;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/contrast-js@0.0.3/dist/contrast.min.js"></script>
+</head>
+<body>
+
+<div class="top-bar">
+    <div class="top-left">
+        <div class="zoom-group">
+            <button class="zoom-btn" id="zoomOutBtn"><i class="fas fa-minus"></i></button>
+            <span class="zoom-level" id="zoomLevel">100%</span>
+            <button class="zoom-btn" id="zoomInBtn"><i class="fas fa-plus"></i></button>
+            <button class="zoom-btn" id="resetZoomBtn"><i class="fas fa-undo"></i></button>
+        </div>
+        <div class="grid-size" id="gridSizeInfo">100×100</div>
+    </div>
+    <button class="clear-all" id="clearAllBtn"><i class="fas fa-trash"></i></button>
+</div>
+
+<!-- 颜色面板 + 橡皮擦 + 橡皮擦大小调节 -->
+<div class="color-tools" style="flex-direction: column;">
+    <div style="display: flex; gap: 10px;">
+        <input type="color" id="nativeColorPicker" value="#2c3e4e">
+        <button class="eraser-btn" id="eraserBtn"><i class="fas fa-eraser"></i></button>
+    </div>
+    <div class="eraser-size-container" id="eraserSizeContainer">
+        <input type="range" class="eraser-size-slider" id="eraserSizeSlider" min="1" max="10" value="1">
+    </div>
+</div>
+
+<div class="grid-container">
+    <div class="zoom-wrapper" id="zoomWrapper">
+        <div class="grid" id="grid"></div>
+    </div>
+</div>
+
+<div class="grid-operate">
+    <button class="operate-btn" id="addRowBtn"><i class="fas fa-arrow-down"></i></button>
+    <button class="operate-btn" id="addColBtn"><i class="fas fa-arrow-right"></i></button>
+</div>
+
+<div class="coord" id="coord">X: 0 | Y: 0</div>
+
+<div class="edit-panel">
+    <button class="panel-btn primary" id="fillSelectedColorBtn"><i class="fas fa-fill"></i></button>
+    <button class="panel-btn" id="clearSelectedBtn"><i class="fas fa-eraser"></i></button>
+</div>
+
+<div class="bottom-tools">
+    <button class="bottom-btn" id="importBtn"><i class="fas fa-image"></i> 导入图片</button>
+    <button class="bottom-btn primary" id="exportBtn"><i class="fas fa-download"></i> 导出图纸</button>
+</div>
+<input type="file" id="fileInput" accept="image/*">
+
+<script>
+    (function() {
+        const pinColorJson = {
+            "#000000":"S42","#FFFFFF":"S51","#808080":"S41","#FF0000":"S77",
+            "#FF671F":"S66","#FFD100":"S48","#00FF00":"S71","#06AADF":"C5",
+            "#157EFB":"S33","#937D8A":"D5","#FF6D6A":"S02","#FAD4BF":"E2",
+            "#78C856":"G1","#2c3e4e":"S01","#F6EAD6":"A1","#B9C3CF":"S17"
+        };
+
+        const DEFAULT_COLOR = "#2c3e4e";
+        let currentColor = DEFAULT_COLOR;
+        let isEraser = false;
+        let eraserSize = 1; // 橡皮擦大小
+
+        let gridData = [];
+        let rows = 48, cols = 48;
+        let baseCellSize = 28;
+        let currentZoom = 1;
+        let selectedRow = null, selectedCol = null;
+        let isDragging = false;
+        let panX = 0, panY = 0;
+
+        let history = [];
+        let historyIndex = -1;
+        const MAX_PIXEL = 100;
+
+        const colorPicker = document.getElementById('nativeColorPicker');
+        const eraserBtn = document.getElementById('eraserBtn');
+        const eraserSizeContainer = document.getElementById('eraserSizeContainer');
+        const eraserSizeSlider = document.getElementById('eraserSizeSlider');
+        const eraserSizeText = document.getElementById('eraserSizeText');
+        const gridEl = document.getElementById('grid');
+        const zoomWrapper = document.getElementById('zoomWrapper');
+        const coord = document.getElementById('coord');
+        const editPanel = document.getElementById('editPanel');
+        const gridContainer = document.querySelector('.grid-container');
+        const fileInput = document.getElementById('fileInput');
+        const importBtn = document.getElementById('importBtn');
+        const exportBtn = document.getElementById('exportBtn');
+
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        // 橡皮擦大小滑块监听
+        eraserSizeSlider.addEventListener('input', () => {
+            eraserSize = parseInt(eraserSizeSlider.value);
+            eraserSizeText.textContent = `大小：${eraserSize}`;
+        });
+
+        // ==============================
+        // 修复：深色背景自动显示白色文字
+        // ==============================
+        function getBestTextColor(hex) {
+            if (!hex) return '#000';
+            hex = hex.replace('#', '');
+            const r = parseInt(hex.substr(0,2),16);
+            const g = parseInt(hex.substr(2,2),16);
+            const b = parseInt(hex.substr(4,2),16);
+            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+            return brightness < 140 ? '#FFFFFF' : '#000000';
+        }
+
+        function saveHistory() {
+            const data = JSON.parse(JSON.stringify(gridData));
+            history = history.slice(0, historyIndex + 1);
+            history.push(data);
+            historyIndex++;
+            if (history.length > 30) {
+                history.shift();
+                historyIndex--;
+            }
+        }
+
+        function undo() {
+            if (historyIndex <= 0) return;
+            historyIndex--;
+            gridData = JSON.parse(JSON.stringify(history[historyIndex]));
+            render();
+        }
+
+        document.addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'z') {
+                e.preventDefault();
+                undo();
+            }
+        });
+
+        function getColorCode(hex) {
+            if (!hex) return "";
+            const upper = hex.toUpperCase();
+            return pinColorJson[upper] || upper.slice(1, 4);
+        }
+
+        function initGrid() {
+            gridData = Array.from({ length: rows }, () => Array(cols).fill(null));
+            saveHistory();
+            render();
+        }
+
+        // 批量设置颜色（支持橡皮擦范围）
+        function setColorRange(centerR, centerC, val) {
+            const radius = Math.floor(eraserSize / 2);
+            for (let r = centerR - radius; r <= centerR + radius; r++) {
+                for (let c = centerC - radius; c <= centerC + radius; c++) {
+                    setColor(r, c, val);
+                }
+            }
+        }
+
+        function render() {
+            gridEl.style.gridTemplateColumns = `repeat(${cols}, ${baseCellSize}px)`;
+            gridEl.style.gridTemplateRows = `repeat(${rows}, ${baseCellSize}px)`;
+            gridEl.innerHTML = '';
+
+            for (let i = 0; i < rows; i++) {
+                for (let j = 0; j < cols; j++) {
+                    const c = document.createElement('div');
+                    c.className = 'cell';
+                    const color = gridData[i][j];
+                    c.style.backgroundColor = color || 'transparent';
+                    c.innerText = color ? getColorCode(color) : '';
+                    c.style.color = getBestTextColor(color);
+                    c.dataset.r = i;
+                    c.dataset.c = j;
+
+                    c.onclick = () => selected(i, j);
+                    c.ondblclick = () => {
+                        const val = isEraser ? null : currentColor;
+                        isEraser ? setColorRange(i, j, val) : setColor(i, j, val);
+                    };
+                    c.onmousedown = (e) => {
+                        if (e.button === 0) {
+                            isDragging = true;
+                            const val = isEraser ? null : currentColor;
+                            isEraser ? setColorRange(i, j, val) : setColor(i, j, val);
+                        }
+                    };
+                    c.onmouseenter = () => {
+                        if (isDragging) {
+                            const val = isEraser ? null : currentColor;
+                            isEraser ? setColorRange(i, j, val) : setColor(i, j, val);
+                        }
+                        updateCoord(j + 1, i + 1);
+                    };
+                    gridEl.appendChild(c);
+                }
+            }
+            highlight();
+            document.getElementById('gridSizeInfo').innerText = `${cols}×${rows}`;
+        }
+
+        function setColor(r, c, val) {
+            if (r < 0 || r >= rows || c < 0 || c >= cols) return;
+            if (gridData[r][c] === val) return;
+            gridData[r][c] = val;
+            const cell = document.querySelector(`.cell[data-r='${r}'][data-c='${c}']`);
+            if (cell) {
+                cell.style.backgroundColor = val || 'transparent';
+                cell.innerText = val ? getColorCode(val) : '';
+                cell.style.color = getBestTextColor(val);
+            }
+        }
+
+        function selected(r, c) {
+            selectedRow = r; selectedCol = c;
+            editPanel.style.display = 'flex';
+            highlight();
+            updateCoord(c + 1, r + 1);
+        }
+
+        function highlight() {
+            document.querySelectorAll('.cell').forEach(x => x.classList.remove('selected-highlight'));
+            const t = document.querySelector(`.cell[data-r='${selectedRow}'][data-c='${selectedCol}']`);
+            if (t) t.classList.add('selected-highlight');
+        }
+
+        function setZoom(z) {
+            currentZoom = Math.max(0.2, Math.min(3, z));
+            updateTransform();
+            document.getElementById('zoomLevel').innerText = Math.round(currentZoom * 100) + '%';
+        }
+
+        function updateTransform() {
+            zoomWrapper.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${currentZoom})`;
+        }
+
+        gridContainer.addEventListener('wheel', e => {
+            e.preventDefault();
+            setZoom(currentZoom + (e.deltaY > 0 ? -0.1 : 0.1));
+        });
+
+        document.addEventListener('keydown', e => {
+            const step = 20;
+            switch (e.key) {
+                case 'ArrowUp': panY += step; break;
+                case 'ArrowDown': panY -= step; break;
+                case 'ArrowLeft': panX += step; break;
+                case 'ArrowRight': panX -= step; break;
+            }
+            updateTransform();
+        });
+
+        function updateCoord(x, y) {
+            coord.innerText = `X: ${x} | Y: ${y}`;
+        }
+
+        // 橡皮擦开关
+        eraserBtn.onclick = () => {
+            isEraser = !isEraser;
+            eraserBtn.classList.toggle('active', isEraser);
+            eraserSizeContainer.style.display = isEraser ? 'flex' : 'none';
+            if (isEraser) {
+                colorPicker.value = DEFAULT_COLOR;
+                currentColor = DEFAULT_COLOR;
+            }
+        };
+
+        importBtn.onclick = () => fileInput.click();
+        fileInput.onchange = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const img = new Image();
+            img.src = URL.createObjectURL(file);
+            img.onload = () => {
+                let w = img.width;
+                let h = img.height;
+
+                if (w > h) {
+                    if (w > MAX_PIXEL) {
+                        h = Math.round(h * MAX_PIXEL / w);
+                        w = MAX_PIXEL;
+                    }
+                } else {
+                    if (h > MAX_PIXEL) {
+                        w = Math.round(w * MAX_PIXEL / h);
+                        h = MAX_PIXEL;
+                    }
+                }
+
+                cols = w;
+                rows = h;
+                gridData = Array.from({ length: rows }, () => Array(cols).fill(null));
+
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = cols;
+                canvas.height = rows;
+                ctx.drawImage(img, 0, 0, cols, rows);
+
+                for (let i = 0; i < rows; i++) {
+                    for (let j = 0; j < cols; j++) {
+                        const p = ctx.getImageData(j, i, 1, 1).data;
+                        const hex = rgbToHex(p[0], p[1], p[2]);
+                        setColor(i, j, hex);
+                    }
+                }
+                saveHistory();
+                render();
+            };
+        };
+
+        function rgbToHex(r, g, b) {
+            return '#' + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1).toUpperCase();
+        }
+
+        exportBtn.onclick = () => {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            const size = baseCellSize;
+            canvas.width = cols * size;
+            canvas.height = rows * size;
+
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 14px "ZCOOL KuaiLe"';
+
+            for(let i=0; i<rows; i++){
+                for(let j=0; j<cols; j++){
+                    const color = gridData[i][j];
+                    
+                    if (!color) {
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(j*size, i*size, size, size);
+                        ctx.strokeStyle = '#cbd5e6';
+                        ctx.strokeRect(j*size, i*size, size, size);
+                        continue;
+                    }
+
+                    ctx.fillStyle = color;
+                    ctx.fillRect(j*size, i*size, size, size);
+                    ctx.strokeStyle = '#cbd5e6';
+                    ctx.strokeRect(j*size, i*size, size, size);
+
+                    const code = getColorCode(color);
+                    if(code){
+                        ctx.fillStyle = getBestTextColor(color);
+                        ctx.fillText(code, j*size + size/2, i*size + size/2);
+                    }
+                }
+            }
+
+            const a = document.createElement('a');
+            a.download = '拼豆图纸_'+new Date().getTime()+'.png';
+            a.href = canvas.toDataURL('image/png');
+            a.click();
+        };
+
+        document.onmouseup = () => {
+            if (isDragging) saveHistory();
+            isDragging = false;
+        };
+
+        colorPicker.addEventListener('input', () => {
+            currentColor = colorPicker.value;
+            isEraser = false;
+            eraserBtn.classList.remove('active');
+            eraserSizeContainer.style.display = 'none';
+        });
+
+        document.getElementById('zoomInBtn').onclick = () => setZoom(currentZoom + 0.1);
+        document.getElementById('zoomOutBtn').onclick = () => setZoom(currentZoom - 0.1);
+        document.getElementById('resetZoomBtn').onclick = () => { setZoom(1); panX = 0; panY = 0; };
+        document.getElementById('addRowBtn').onclick = () => { rows++; gridData.push(Array(cols).fill(null)); saveHistory(); render(); };
+        document.getElementById('addColBtn').onclick = () => { cols++; gridData.forEach(x => x.push(null)); saveHistory(); render(); };
+        document.getElementById('clearAllBtn').onclick = () => { gridData.forEach((r,i)=>r.forEach((_,j)=>setColor(i,j,null))); saveHistory(); render(); };
+        document.getElementById('fillSelectedColorBtn').onclick = () => { setColor(selectedRow,selectedCol,currentColor); saveHistory(); };
+        document.getElementById('clearSelectedBtn').onclick = () => { setColor(selectedRow,selectedCol,null); saveHistory(); };
+
+        initGrid();
+    })();
+</script>
+</body>
+</html>
