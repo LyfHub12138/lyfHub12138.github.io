@@ -386,7 +386,6 @@
 
         let history = [];
         let historyIndex = -1;
-        const MAX_HISTORY = 10000; // 扩大历史记录
         const MAX_PIXEL = 100;
 
         const colorPicker = document.getElementById('nativeColorPicker');
@@ -487,12 +486,10 @@
 
         function saveHistory() {
             const data = JSON.parse(JSON.stringify(gridData));
-            // 去重：避免连续保存相同状态
-            if (historyIndex >= 0 && JSON.stringify(history[historyIndex]) === JSON.stringify(data)) return;
             history = history.slice(0, historyIndex + 1);
             history.push(data);
             historyIndex++;
-            if (history.length > MAX_HISTORY) {
+            if (history.length > 30) {
                 history.shift();
                 historyIndex--;
             }
@@ -526,16 +523,11 @@
 
         function setColorRange(centerR, centerC, val) {
             const radius = Math.floor(eraserSize / 2);
-            let changed = false;
             for (let r = centerR - radius; r <= centerR + radius; r++) {
                 for (let c = centerC - radius; c <= centerC + radius; c++) {
-                    if (r >= 0 && r < rows && c >=0 && c < cols) {
-                        if (gridData[r][c] !== val) changed = true;
-                        setColor(r, c, val);
-                    }
+                    setColor(r, c, val);
                 }
             }
-            if (changed) saveHistory();
         }
 
         function render() {
@@ -591,7 +583,6 @@
                 cell.innerText = (val && showText) ? getColorCode(val) : '';
                 cell.style.color = getBestTextColor(val);
             }
-            saveHistory(); // 每画一格都保存
         }
 
         function setZoom(z) {
@@ -624,11 +615,12 @@
             coord.innerText = `X: ${x} | Y: ${y}`;
         }
 
-        // ———— 修复1：橡皮擦不再重置颜色选盘 ————
+        // ========== 只改这里：去掉重置颜色的逻辑 ==========
         eraserBtn.onclick = () => {
             isEraser = !isEraser;
             eraserBtn.classList.toggle('active', isEraser);
             eraserSizeContainer.style.display = isEraser ? 'flex' : 'none';
+            // 删掉了原来的 colorPicker.value = DEFAULT_COLOR 这两行
         };
 
         importBtn.onclick = () => fileInput.click();
@@ -722,6 +714,7 @@
         };
 
         document.onmouseup = () => {
+            if (isDragging) saveHistory();
             isDragging = false;
         };
 
