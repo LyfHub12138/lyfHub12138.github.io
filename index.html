@@ -92,6 +92,42 @@
             color: #b91c1c;
         }
 
+        /* Switch 开关样式 */
+        .switch-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+        }
+        .switch {
+            width: 40px;
+            height: 22px;
+            background: #ddd;
+            border-radius: 99px;
+            position: relative;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .switch::before {
+            content: '';
+            position: absolute;
+            width: 18px;
+            height: 18px;
+            background: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: all 0.2s;
+        }
+        .switch.active {
+            background: #3b82f6;
+        }
+        .switch.active::before {
+            left: 20px;
+        }
+
         /* 颜色工具组 */
         .color-tools {
             position: fixed;
@@ -294,6 +330,12 @@
             <button class="zoom-btn" id="resetZoomBtn"><i class="fas fa-undo"></i></button>
         </div>
         <div class="grid-size" id="gridSizeInfo">100×100</div>
+
+        <!-- 文字显示开关 -->
+        <div class="switch-container">
+            <span>显示文字</span>
+            <div class="switch active" id="textSwitch"></div>
+        </div>
     </div>
     <button class="clear-all" id="clearAllBtn"><i class="fas fa-trash"></i></button>
 </div>
@@ -345,7 +387,8 @@
         const DEFAULT_COLOR = "#2c3e4e";
         let currentColor = DEFAULT_COLOR;
         let isEraser = false;
-        let eraserSize = 1; // 橡皮擦大小
+        let eraserSize = 1;
+        let showText = true; // 控制文字显示隐藏
 
         let gridData = [];
         let rows = 48, cols = 48;
@@ -363,7 +406,6 @@
         const eraserBtn = document.getElementById('eraserBtn');
         const eraserSizeContainer = document.getElementById('eraserSizeContainer');
         const eraserSizeSlider = document.getElementById('eraserSizeSlider');
-        const eraserSizeText = document.getElementById('eraserSizeText');
         const gridEl = document.getElementById('grid');
         const zoomWrapper = document.getElementById('zoomWrapper');
         const coord = document.getElementById('coord');
@@ -372,18 +414,36 @@
         const fileInput = document.getElementById('fileInput');
         const importBtn = document.getElementById('importBtn');
         const exportBtn = document.getElementById('exportBtn');
+        const textSwitch = document.getElementById('textSwitch');
 
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        // 橡皮擦大小滑块监听
+        // 文字显示隐藏开关
+        textSwitch.onclick = () => {
+            showText = !showText;
+            textSwitch.classList.toggle('active', showText);
+            refreshAllCellText();
+        };
+
+        // 只刷新文字，不改动格子样式
+        function refreshAllCellText() {
+            const cells = document.querySelectorAll('.cell');
+            cells.forEach((cell, idx) => {
+                const r = parseInt(cell.dataset.r);
+                const c = parseInt(cell.dataset.c);
+                const color = gridData[r][c];
+                if (!color) {
+                    cell.innerText = '';
+                    return;
+                }
+                cell.innerText = showText ? getColorCode(color) : '';
+            });
+        }
+
         eraserSizeSlider.addEventListener('input', () => {
             eraserSize = parseInt(eraserSizeSlider.value);
-            eraserSizeText.textContent = `大小：${eraserSize}`;
         });
 
-        // ==============================
-        // 修复：深色背景自动显示白色文字
-        // ==============================
         function getBestTextColor(hex) {
             if (!hex) return '#000';
             hex = hex.replace('#', '');
@@ -431,7 +491,6 @@
             render();
         }
 
-        // 批量设置颜色（支持橡皮擦范围）
         function setColorRange(centerR, centerC, val) {
             const radius = Math.floor(eraserSize / 2);
             for (let r = centerR - radius; r <= centerR + radius; r++) {
@@ -452,7 +511,7 @@
                     c.className = 'cell';
                     const color = gridData[i][j];
                     c.style.backgroundColor = color || 'transparent';
-                    c.innerText = color ? getColorCode(color) : '';
+                    c.innerText = (color && showText) ? getColorCode(color) : '';
                     c.style.color = getBestTextColor(color);
                     c.dataset.r = i;
                     c.dataset.c = j;
@@ -490,7 +549,7 @@
             const cell = document.querySelector(`.cell[data-r='${r}'][data-c='${c}']`);
             if (cell) {
                 cell.style.backgroundColor = val || 'transparent';
-                cell.innerText = val ? getColorCode(val) : '';
+                cell.innerText = (val && showText) ? getColorCode(val) : '';
                 cell.style.color = getBestTextColor(val);
             }
         }
@@ -538,7 +597,6 @@
             coord.innerText = `X: ${x} | Y: ${y}`;
         }
 
-        // 橡皮擦开关
         eraserBtn.onclick = () => {
             isEraser = !isEraser;
             eraserBtn.classList.toggle('active', isEraser);
@@ -626,7 +684,7 @@
                     ctx.strokeRect(j*size, i*size, size, size);
 
                     const code = getColorCode(color);
-                    if(code){
+                    if(code && showText){
                         ctx.fillStyle = getBestTextColor(color);
                         ctx.fillText(code, j*size + size/2, i*size + size/2);
                     }
