@@ -32,6 +32,7 @@
             justify-content: space-between;
             padding: 0 20px;
             z-index: 20;
+            position: relative;
         }
 
         .top-left {
@@ -202,7 +203,40 @@
             transform: translate(-50%, -50%);
         }
 
+        /* 主网格布局（包含坐标） */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 30px auto;
+            grid-template-rows: 30px auto;
+        }
+        /* 顶部X坐标 */
+        .x-coords {
+            grid-column: 2;
+            grid-row: 1;
+            display: flex;
+            background: #e2e8f0;
+        }
+        /* 左侧Y坐标 */
+        .y-coords {
+            grid-column: 1;
+            grid-row: 2;
+            display: flex;
+            flex-direction: column;
+            background: #e2e8f0;
+        }
+        /* 坐标数字样式 */
+        .coord-item {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+            color: #475569;
+        }
+        /* 像素网格 */
         .grid {
+            grid-column: 2;
+            grid-row: 2;
             display: grid;
             background-color: #fefefe;
             box-shadow: 0 0 0 1px #b9c3cf inset;
@@ -212,7 +246,7 @@
             background-color: transparent;
             border: 1px solid #cbd5e6;
             box-sizing: border-box;
-            transition: background-color 0.03s linear;
+            transition: all 0.08s ease;
             cursor: crosshair;
             display: flex;
             align-items: center;
@@ -222,9 +256,13 @@
             font-size:10px;
         }
 
+        /* 选中聚焦效果（超强高亮） */
         .cell.selected-highlight {
-            box-shadow: 0 0 0 2px #3b82f6, 0 0 4px rgba(59,130,200,0.45);
-            z-index: 3;
+            border-color: #2563eb !important;
+            background-color: #dbeafe !important;
+            box-shadow: 0 0 0 3px #3b82f6, 0 0 12px rgba(59,130,240,0.8) !important;
+            transform: scale(1.08);
+            z-index: 10;
             position: relative;
         }
 
@@ -353,7 +391,11 @@
 
 <div class="grid-container">
     <div class="zoom-wrapper" id="zoomWrapper">
-        <div class="grid" id="grid"></div>
+        <div class="main-grid" id="mainGrid">
+            <div class="x-coords" id="xCoords"></div>
+            <div class="y-coords" id="yCoords"></div>
+            <div class="grid" id="grid"></div>
+        </div>
     </div>
 </div>
 
@@ -388,7 +430,7 @@
         let currentColor = DEFAULT_COLOR;
         let isEraser = false;
         let eraserSize = 1;
-        let showText = true; // 控制文字显示隐藏
+        let showText = true;
 
         let gridData = [];
         let rows = 48, cols = 48;
@@ -396,7 +438,9 @@
         let currentZoom = 1;
         let selectedRow = null, selectedCol = null;
         let isDragging = false;
+        let isPanning = false; // 平移视图
         let panX = 0, panY = 0;
+        let lastMouseX, lastMouseY;
 
         let history = [];
         let historyIndex = -1;
@@ -407,6 +451,8 @@
         const eraserSizeContainer = document.getElementById('eraserSizeContainer');
         const eraserSizeSlider = document.getElementById('eraserSizeSlider');
         const gridEl = document.getElementById('grid');
+        const xCoordsEl = document.getElementById('xCoords');
+        const yCoordsEl = document.getElementById('yCoords');
         const zoomWrapper = document.getElementById('zoomWrapper');
         const coord = document.getElementById('coord');
         const editPanel = document.getElementById('editPanel');
@@ -418,25 +464,78 @@
 
         document.addEventListener('contextmenu', e => e.preventDefault());
 
-        // 文字显示隐藏开关
+        // ======================
+        // Ctrl + 左键 拖拽平移
+        // ======================
+        gridContainer.addEventListener('mousedown', (e) => {
+            if (e.button === 0 && e.ctrlKey) {
+                isPanning = true;
+                lastMouseX = e.clientX;
+                lastMouseY = e.clientY;
+                gridContainer.style.cursor = 'grabbing';
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            if (!isPanning) return;
+            const dx = e.clientX - lastMouseX;
+            const dy = e.clientY - lastMouseY;
+            panX += dx;
+            panY += dy;
+            lastMouseX = e.clientX;
+            lastMouseY = e.clientY;
+            updateTransform();
+        });
+
+        document.addEventListener('mouseup', () => {
+            if (isPanning) {
+                isPanning = false;
+                gridContainer.style.cursor = 'default';
+            }
+        });
+
+        // 文字显示开关
         textSwitch.onclick = () => {
             showText = !showText;
             textSwitch.classList.toggle('active', showText);
             refreshAllCellText();
         };
 
-        // 只刷新文字，不改动格子样式
+        // 刷新坐标显示
+        function renderCoords() {
+            xCoordsEl.innerHTML = '';
+            yCoordsEl.innerHTML = '';
+            xCoordsEl.style.width = cols * baseCellSize + 'px';
+            yCoordsEl.style.height = rows * baseCellSize + 'px';
+
+            // 顶部X坐标
+            for (let j = 0; j < cols; j++) {
+                const x = document.createElement('div');
+                x.className = 'coord-item';
+                x.style.width = baseCellSize + 'px';
+                x.style.height = '30px';
+                x.innerText = j + 1;
+                xCoordsEl.appendChild(x);
+            }
+            // 左侧Y坐标
+            for (let i = 0; i < rows; i++) {
+                const y = document.createElement('div');
+                y.className = 'coord-item';
+                y.style.height = baseCellSize + 'px';
+                y.style.width = '30px';
+                y.innerText = i + 1;
+                yCoordsEl.appendChild(y);
+            }
+        }
+
         function refreshAllCellText() {
             const cells = document.querySelectorAll('.cell');
             cells.forEach((cell, idx) => {
                 const r = parseInt(cell.dataset.r);
                 const c = parseInt(cell.dataset.c);
                 const color = gridData[r][c];
-                if (!color) {
-                    cell.innerText = '';
-                    return;
-                }
-                cell.innerText = showText ? getColorCode(color) : '';
+                cell.innerText = (color && showText) ? getColorCode(color) : '';
             });
         }
 
@@ -501,6 +600,7 @@
         }
 
         function render() {
+            renderCoords(); // 渲染坐标
             gridEl.style.gridTemplateColumns = `repeat(${cols}, ${baseCellSize}px)`;
             gridEl.style.gridTemplateRows = `repeat(${rows}, ${baseCellSize}px)`;
             gridEl.innerHTML = '';
@@ -509,6 +609,8 @@
                 for (let j = 0; j < cols; j++) {
                     const c = document.createElement('div');
                     c.className = 'cell';
+                    c.style.width = baseCellSize + 'px';
+                    c.style.height = baseCellSize + 'px';
                     const color = gridData[i][j];
                     c.style.backgroundColor = color || 'transparent';
                     c.innerText = (color && showText) ? getColorCode(color) : '';
@@ -522,7 +624,7 @@
                         isEraser ? setColorRange(i, j, val) : setColor(i, j, val);
                     };
                     c.onmousedown = (e) => {
-                        if (e.button === 0) {
+                        if (e.button === 0 && !e.ctrlKey) {
                             isDragging = true;
                             const val = isEraser ? null : currentColor;
                             isEraser ? setColorRange(i, j, val) : setColor(i, j, val);
@@ -554,6 +656,7 @@
             }
         }
 
+        // 选中 + 聚焦效果
         function selected(r, c) {
             selectedRow = r; selectedCol = c;
             editPanel.style.display = 'flex';
@@ -674,7 +777,7 @@
                         ctx.fillStyle = '#ffffff';
                         ctx.fillRect(j*size, i*size, size, size);
                         ctx.strokeStyle = '#cbd5e6';
-                        ctx.strokeRect(j*size, i*size, size, size);
+                        ctx.strokeRect(j*size, size, size, size);
                         continue;
                     }
 
